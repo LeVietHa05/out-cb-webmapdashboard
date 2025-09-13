@@ -1,0 +1,30 @@
+// schema.prisma
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Device {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  lat         Float
+  lng         Float
+  images      Image[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Image {
+  id        Int      @id @default(autoincrement())
+  url       String   // đường dẫn hoặc URL ảnh
+  title     String?
+  content   String?
+  device    Device   @relation(fields: [deviceId], references: [id])
+  deviceId  Int
+  createdAt DateTime @default(now())
+}
