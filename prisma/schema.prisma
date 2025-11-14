@@ -15,6 +15,7 @@ model Device {
   lat         Float
   lng         Float
   images      Image[]
+  lastUploadAt DateTime?  // Added nullable DateTime field to track last upload time
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

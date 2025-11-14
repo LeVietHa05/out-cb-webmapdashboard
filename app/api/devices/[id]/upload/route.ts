@@ -24,13 +24,19 @@ export async function POST(
   await writeFile(filepath, buffer);
 
   // Lưu vào DB
-  await db.image.create({
+  await db.image.create({    
     data: {
       url: filename,
       title,
       content,
       deviceId: Number(id),
     },
+  });
+
+  // Update device's lastUploadAt timestamp
+  await db.device.update({
+    where: { id: Number(id) },
+    data: { lastUploadAt: new Date() },
   });
 
   return NextResponse.json({ success: true, filename, title, content });

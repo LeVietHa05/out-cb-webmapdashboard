@@ -14,6 +14,7 @@ export async function GET() {
       lat: d.lat,
       lng: d.lng,
       description: d.description,
+      lastUploadAt: d.lastUploadAt,
       images: d.images.map((img: Image) => `/uploads/${img.url}`),
     }))
   );
