@@ -1,11 +1,24 @@
 'use client';
 
 import { LatLngTuple } from "leaflet";
-import { MapContainer, TileLayer, Marker, useMap, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+
+export interface EnvironmentData {
+    temperature: number;
+    humidity: number;
+    isRaining: boolean;
+    createdAt: string;
+}
+
+export interface DeviceImage {
+    url: string;
+    licensePlate?: string;
+    createdAt: string;
+}
 
 export interface Device {
     id: number;
@@ -13,8 +26,13 @@ export interface Device {
     description?: string;
     lat: number;
     lng: number;
-    lastUploadAt?: string; // ISO date string
-    images?: string[];
+    lastUploadAt?: string;
+    isFogging: boolean;
+    isRoadSlippery: boolean;
+    isLandslide: boolean;
+    images?: DeviceImage[];
+    environmentData?: EnvironmentData[];
+    latestEnvironment?: EnvironmentData | null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,22 +119,156 @@ export default function Map() {
             {/* Modal for selected device */}
             {selectedDevice && (
                 <div onClick={() => setSelectedDevice(null)} className="fixed inset-0 bg-black/30 z-[10000]">
-                    <div onClick={(e) => e.stopPropagation()} className="fixed top-4 right-4 bottom-4 w-96 bg-white p-6 rounded-lg max-w-md w-full overflow-y-auto ">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold">{selectedDevice.title}</h2>
+                    <div onClick={(e) => e.stopPropagation()} className="fixed top-4 right-4 bottom-4 w-96 bg-white p-6 rounded-lg max-w-md w-full overflow-y-auto shadow-2xl">
+                        {/* Header */}
+                        <div className="flex justify-between items-center mb-4 pb-4 border-b">
+                            <h2 className="text-xl font-bold text-gray-800">{selectedDevice.title}</h2>
                             <button
                                 onClick={() => setSelectedDevice(null)}
-                                className="text-gray-500 hover:text-gray-700 text-2xl"
+                                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
                             >
                                 &times;
                             </button>
                         </div>
-                        <p className="mb-4">{selectedDevice.description}</p>
+
+                        {/* Description */}
+                        {selectedDevice.description && (
+                            <p className="mb-4 text-gray-600">{selectedDevice.description}</p>
+                        )}
+
+                        {/* Status Alerts */}
+                        <div className="mb-4 space-y-2">
+                            {selectedDevice.isLandslide && (
+                                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded">
+                                    <div className="flex items-center">
+                                        <span className="text-xl mr-2">⚠️</span>
+                                        <div>
+                                            <p className="font-bold">CẢNH BÁO SẠT LỞ ĐẤT</p>
+                                            <p className="text-sm">Phát hiện nguy cơ sạt lở</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {selectedDevice.isRoadSlippery && (
+                                <div className="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-3 rounded">
+                                    <div className="flex items-center">
+                                        <span className="text-xl mr-2">🌧️</span>
+                                        <div>
+                                            <p className="font-bold">Đường Trơn Trượt</p>
+                                            <p className="text-sm">Mưa liên tục &gt; 10 phút</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {selectedDevice.isFogging && (
+                                <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 rounded">
+                                    <div className="flex items-center">
+                                        <span className="text-xl mr-2">🌫️</span>
+                                        <div>
+                                            <p className="font-bold">Sương Mù</p>
+                                            <p className="text-sm">Độ ẩm cao, nhiệt độ thấp</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Latest Environment Data */}
+                        {selectedDevice.latestEnvironment && (
+                            <div className="mb-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                <h3 className="font-bold text-blue-900 mb-3 flex items-center">
+                                    <span className="mr-2">🌡️</span>
+                                    Dữ Liệu Môi Trường
+                                </h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-white p-3 rounded shadow-sm">
+                                        <p className="text-xs text-gray-500 mb-1">Nhiệt độ</p>
+                                        <p className="text-2xl font-bold text-blue-600">
+                                            {selectedDevice.latestEnvironment.temperature.toFixed(1)}°C
+                                        </p>
+                                    </div>
+                                    <div className="bg-white p-3 rounded shadow-sm">
+                                        <p className="text-xs text-gray-500 mb-1">Độ ẩm</p>
+                                        <p className="text-2xl font-bold text-blue-600">
+                                            {selectedDevice.latestEnvironment.humidity.toFixed(1)}%
+                                        </p>
+                                    </div>
+                                    <div className="bg-white p-3 rounded shadow-sm col-span-2">
+                                        <p className="text-xs text-gray-500 mb-1">Trạng thái mưa</p>
+                                        <p className="text-lg font-bold">
+                                            {selectedDevice.latestEnvironment.isRaining ? (
+                                                <span className="text-blue-600">🌧️ Đang mưa</span>
+                                            ) : (
+                                                <span className="text-gray-600">☀️ Không mưa</span>
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    Cập nhật: {new Date(selectedDevice.latestEnvironment.createdAt).toLocaleString('vi-VN')}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Images with License Plates */}
                         {selectedDevice.images && selectedDevice.images.length > 0 && (
-                            <div className="space-y-2">
-                                {selectedDevice.images.map((img: string, i: number) => (
-                                    <Image key={i} src={img} alt="device image" width={400} height={300} className="w-full rounded" />
-                                ))}
+                            <div className="mb-4">
+                                <h3 className="font-bold text-gray-800 mb-3 flex items-center">
+                                    <span className="mr-2">📷</span>
+                                    Hình Ảnh ({selectedDevice.images.length})
+                                </h3>
+                                <div className="space-y-3">
+                                    {selectedDevice.images.map((img: DeviceImage, i: number) => (
+                                        <div key={i} className="border rounded-lg overflow-hidden shadow-sm">
+                                            <Image 
+                                                src={img.url} 
+                                                alt="device image" 
+                                                width={400} 
+                                                height={300} 
+                                                className="w-full"
+                                            />
+                                            <div className="p-3 bg-gray-50">
+                                                {img.licensePlate && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-gray-600">Biển số xe:</span>
+                                                        <span className="font-mono font-bold text-blue-600 bg-white px-3 py-1 rounded border-2 border-blue-600">
+                                                            {img.licensePlate}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                <p className="text-xs text-gray-500 mt-2">
+                                                    {new Date(img.createdAt).toLocaleString('vi-VN')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Environment History */}
+                        {selectedDevice.environmentData && selectedDevice.environmentData.length > 0 && (
+                            <div className="mb-4">
+                                <h3 className="font-bold text-gray-800 mb-3 flex items-center">
+                                    <span className="mr-2">📊</span>
+                                    Lịch Sử Môi Trường
+                                </h3>
+                                <div className="space-y-2 max-h-60 overflow-y-auto">
+                                    {selectedDevice.environmentData.slice(0, 5).map((env: EnvironmentData, i: number) => (
+                                        <div key={i} className="bg-gray-50 p-3 rounded border text-sm">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="font-semibold text-gray-700">
+                                                    {new Date(env.createdAt).toLocaleString('vi-VN')}
+                                                </span>
+                                                {env.isRaining && <span className="text-blue-600">🌧️</span>}
+                                            </div>
+                                            <div className="flex gap-4 text-gray-600">
+                                                <span>🌡️ {env.temperature.toFixed(1)}°C</span>
+                                                <span>💧 {env.humidity.toFixed(1)}%</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>

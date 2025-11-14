@@ -9,23 +9,38 @@ generator client {
 }
 
 model Device {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String?
-  lat         Float
-  lng         Float
-  images      Image[]
-  lastUploadAt DateTime?  // Added nullable DateTime field to track last upload time
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              Int               @id @default(autoincrement())
+  title           String
+  description     String?
+  lat             Float
+  lng             Float
+  images          Image[]
+  envirs          EnvironmentData[]
+  isFogging       Boolean           @default(false)
+  isRoadSlippery  Boolean           @default(false)
+  isLandslide     Boolean           @default(false)
+  lastUploadAt    DateTime?         // Added nullable DateTime field to track last upload time
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 }
 
 model Image {
-  id        Int      @id @default(autoincrement())
-  url       String   // đường dẫn hoặc URL ảnh
-  title     String?
-  content   String?
-  device    Device   @relation(fields: [deviceId], references: [id])
-  deviceId  Int
-  createdAt DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  url          String   // đường dẫn hoặc URL ảnh
+  title        String? 
+  content      String?
+  licensePlate String?  // Detected license plate from image
+  device       Device   @relation(fields: [deviceId], references: [id])
+  deviceId     Int
+  createdAt    DateTime @default(now())
+}
+
+model EnvironmentData {
+  id          Int      @id @default(autoincrement())
+  temperature Float    // Temperature in Celsius
+  humidity    Float    // Humidity percentage (0-100)
+  isRaining   Boolean  // Current rain status
+  device      Device   @relation(fields: [deviceId], references: [id])
+  deviceId    Int
+  createdAt   DateTime @default(now())
 }

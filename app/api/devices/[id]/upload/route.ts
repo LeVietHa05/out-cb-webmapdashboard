@@ -12,6 +12,7 @@ export async function POST(
   const file = formData.get("file") as File;
   const title = formData.get("title") as string;
   const content = formData.get("content") as string;
+  const licensePlate = formData.get("licensePlate") as string | null;
 
   if (!file)
     return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -29,6 +30,7 @@ export async function POST(
       url: filename,
       title,
       content,
+      licensePlate,
       deviceId: Number(id),
     },
   });
@@ -39,5 +41,5 @@ export async function POST(
     data: { lastUploadAt: new Date() },
   });
 
-  return NextResponse.json({ success: true, filename, title, content });
+  return NextResponse.json({ success: true, filename, title, content, licensePlate });
 }
