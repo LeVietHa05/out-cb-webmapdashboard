@@ -2,8 +2,9 @@
 
 import { LatLngTuple } from "leaflet";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
-import { Icon } from "leaflet";
+import { Icon, DivIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "./marker-styles.css";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 
@@ -52,21 +53,6 @@ export default function Map() {
     const [mapCenter, setMapCenter] = useState<LatLngTuple>([21.0285, 105.8542]);
     const [mapZoom, setMapZoom] = useState(13);
 
-    // Create custom icons
-    const greenIcon = new Icon({
-        iconUrl: '/maker-green-small.svg',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-    });
-
-    const redIcon = new Icon({
-        iconUrl: '/maker-red-big.svg',
-        iconSize: [35, 57],
-        iconAnchor: [17, 57],
-        popupAnchor: [1, -34],
-    });
-
     const handleMarkerClick = (device: Device) => {
         console.log('Marker clicked for device:', device);
         setSelectedDevice(device);
@@ -76,19 +62,68 @@ export default function Map() {
         setMapZoom(16); // Zoom level bạn muốn
     };
 
-    // Function to get the appropriate icon for a device
-    const getDeviceIcon = (device: Device) => {
+    // Function to check if device is active (uploaded within 60 seconds)
+    const isDeviceActive = (device: Device) => {
         if (device.lastUploadAt) {
             const lastUploadTime = new Date(device.lastUploadAt).getTime();
             const currentTime = Date.now();
             const timeDiff = currentTime - lastUploadTime;
-            const sixtySeconds = 60 * 1000; // 60 seconds in milliseconds
-
-            if (timeDiff <= sixtySeconds) {
-                return redIcon;
-            }
+            const sixtySeconds = 60 * 1000;
+            return timeDiff <= sixtySeconds;
         }
-        return greenIcon;
+        return false;
+    };
+
+    // Function to check if device has detected cars
+    const hasDetectedCars = (device: Device) => {
+        return device.images?.some(img => img.licensePlate) || false;
+    };
+
+    // Function to create custom marker with multiple status badges
+    const createCustomMarker = (device: Device) => {
+        const isActive = isDeviceActive(device);
+        const hasCars = hasDetectedCars(device);
+        
+        // Base marker color - black background with colored border
+        const borderColor = isActive ? '#ef4444' : '#22c55e'; // red or green border
+        const markerSize = isActive ? 50 : 40; // Increased size
+        
+        // Create badges HTML
+        const badges = [];
+        
+        if (device.isLandslide) {
+            badges.push('<div class="status-badge bg-red-600" title="Cảnh báo sạt lở">⚠️</div>');
+        }
+        if (device.isRoadSlippery) {
+            badges.push('<div class="status-badge bg-orange-500" title="Đường trơn trượt">🌧️</div>');
+        }
+        if (device.isFogging) {
+            badges.push('<div class="status-badge bg-yellow-500" title="Sương mù">🌫️</div>');
+        }
+        if (hasCars) {
+            badges.push('<div class="status-badge bg-blue-600" title="Phát hiện xe">🚗</div>');
+        }
+
+        const badgesHtml = badges.length > 0 
+            ? `<div class="status-badges">${badges.join('')}</div>` 
+            : '';
+
+        const html = `
+            <div class="custom-marker-container">
+                <div class="main-marker" style="background-color: #000000; border: 4px solid ${borderColor}; width: ${markerSize}px; height: ${markerSize}px;">
+                    <div class="marker-pulse" style="border-color: ${borderColor};"></div>
+                    <div class="marker-icon">${!isActive ? '🔴' : '🟢'}</div>
+                </div>
+                ${badgesHtml}
+            </div>
+        `;
+
+        return new DivIcon({
+            html: html,
+            className: 'custom-div-icon',
+            iconSize: [markerSize + 10, markerSize + 30],
+            iconAnchor: [(markerSize + 10) / 2, markerSize],
+        });
     };
 
     useEffect(() => {
@@ -109,7 +144,7 @@ export default function Map() {
                     <Marker
                         key={d.id}
                         position={[d.lat, d.lng]}
-                        icon={getDeviceIcon(d)}
+                        icon={createCustomMarker(d)}
                         eventHandlers={{
                             click: () => handleMarkerClick(d),
                         }}
