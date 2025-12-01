@@ -50,8 +50,8 @@ function MapController({ center, zoom }: { center: any, zoom: number }) {
 export default function Map() {
     const [devices, setDevices] = useState<Device[]>([]);
     const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-    const [mapCenter, setMapCenter] = useState<LatLngTuple>([21.0285, 105.8542]);
-    const [mapZoom, setMapZoom] = useState(13);
+    const [mapCenter, setMapCenter] = useState<LatLngTuple>([22.7301, 106.3373]);
+    const [mapZoom, setMapZoom] = useState(14);
 
     const handleMarkerClick = (device: Device) => {
         console.log('Marker clicked for device:', device);

@@ -5,7 +5,7 @@ import type { Device, Image, EnvironmentData } from "@prisma/client";
 export async function GET() {
   // this need to be refactor, can do findmany every single time
   const devices = await db.device.findMany({
-    include: { 
+    include: {
       images: {
         orderBy: {createdAt: 'desc'},
         take: 10,
@@ -42,4 +42,35 @@ export async function GET() {
       latestEnvironment: d.envirs[0] || null,
     }))
   );
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { title, description, lat, lng } = body;
+
+    if (!title || !lat || !lng) {
+      return NextResponse.json(
+        { error: "Missing required fields: title, lat, lng" },
+        { status: 400 }
+      );
+    }
+
+    const device = await db.device.create({
+      data: {
+        title,
+        description,
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+      },
+    });
+
+    return NextResponse.json(device, { status: 201 });
+  } catch (error) {
+    console.error("Error creating device:", error);
+    return NextResponse.json(
+      { error: "Failed to create device" },
+      { status: 500 }
+    );
+  }
 }
