@@ -51,7 +51,16 @@ export default function Map() {
     const [devices, setDevices] = useState<Device[]>([]);
     const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
     const [mapCenter, setMapCenter] = useState<LatLngTuple>([22.7301, 106.3373]);
-    const [mapZoom, setMapZoom] = useState(14);
+    const [mapZoom, setMapZoom] = useState(12);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({
+        title: '',
+        description: '',
+        lat: '',
+        lng: ''
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleMarkerClick = (device: Device) => {
         console.log('Marker clicked for device:', device);
@@ -158,17 +167,168 @@ export default function Map() {
                         {/* Header */}
                         <div className="flex justify-between items-center mb-4 pb-4 border-b">
                             <h2 className="text-xl font-bold text-gray-800">{selectedDevice.title}</h2>
-                            <button
-                                onClick={() => setSelectedDevice(null)}
-                                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-                            >
-                                &times;
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {!isEditing && (
+                                    <button
+                                        onClick={() => {
+                                            setIsEditing(true);
+                                            setEditForm({
+                                                title: selectedDevice.title,
+                                                description: selectedDevice.description || '',
+                                                lat: selectedDevice.lat.toString(),
+                                                lng: selectedDevice.lng.toString()
+                                            });
+                                            setError(null);
+                                        }}
+                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 border border-blue-600 rounded"
+                                    >
+                                        ✏️ Chỉnh sửa
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => {
+                                        setSelectedDevice(null);
+                                        setIsEditing(false);
+                                        setError(null);
+                                    }}
+                                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                                >
+                                    &times;
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Description */}
-                        {selectedDevice.description && (
-                            <p className="mb-4 text-gray-600">{selectedDevice.description}</p>
+                        {/* Edit Form or Description */}
+                        {isEditing ? (
+                            <div className="mb-4 space-y-4">
+                                {error && (
+                                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                                        {error}
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Tiêu đề
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editForm.title}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Nhập tiêu đề thiết bị"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Mô tả
+                                    </label>
+                                    <textarea
+                                        value={editForm.description}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        rows={3}
+                                        placeholder="Nhập mô tả thiết bị"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Vĩ độ (Lat)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={editForm.lat}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, lat: e.target.value }))}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="22.7301"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Kinh độ (Lng)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={editForm.lng}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, lng: e.target.value }))}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="106.3373"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={async () => {
+                                            if (!editForm.title.trim()) {
+                                                setError('Tiêu đề không được để trống');
+                                                return;
+                                            }
+
+                                            setLoading(true);
+                                            setError(null);
+
+                                            try {
+                                                const response = await fetch(`/api/devices/${selectedDevice.id}`, {
+                                                    method: 'PUT',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                    },
+                                                    body: JSON.stringify({
+                                                        title: editForm.title.trim(),
+                                                        description: editForm.description.trim() || undefined,
+                                                        lat: parseFloat(editForm.lat),
+                                                        lng: parseFloat(editForm.lng),
+                                                    }),
+                                                });
+
+                                                if (!response.ok) {
+                                                    throw new Error('Cập nhật thiết bị thất bại');
+                                                }
+
+                                                const updatedDevice = await response.json();
+
+                                                // Update the device in the local state
+                                                setDevices(prev => prev.map(d =>
+                                                    d.id === selectedDevice.id ? { ...d, ...updatedDevice } : d
+                                                ));
+
+                                                // Update selected device
+                                                setSelectedDevice(prev => prev ? { ...prev, ...updatedDevice } : null);
+
+                                                setIsEditing(false);
+                                                setError(null);
+                                            } catch (err) {
+                                                setError(err instanceof Error ? err.message : 'Có lỗi xảy ra');
+                                            } finally {
+                                                setLoading(false);
+                                            }
+                                        }}
+                                        disabled={loading}
+                                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {loading ? 'Đang cập nhật...' : 'Cập nhật'}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsEditing(false);
+                                            setError(null);
+                                        }}
+                                        className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+                                    >
+                                        Hủy
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            selectedDevice.description && (
+                                <p className="mb-4 text-gray-600">{selectedDevice.description}</p>
+                            )
                         )}
 
                         {/* Status Alerts */}
