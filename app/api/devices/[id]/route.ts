@@ -7,8 +7,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const deviceId = parseInt(params.id);
-
+    const { id } = await params;
+    const deviceId = parseInt(id);
     if (isNaN(deviceId)) {
       return NextResponse.json(
         { error: "Invalid device ID" },
@@ -74,7 +74,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const deviceId = parseInt(params.id);
+    const { id } = await params;
+    const deviceId = parseInt(id);
 
     if (isNaN(deviceId)) {
       return NextResponse.json(
@@ -111,7 +112,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const deviceId = parseInt(params.id);
+    const { id } = await params;
+    const deviceId = parseInt(id);
 
     if (isNaN(deviceId)) {
       return NextResponse.json(
