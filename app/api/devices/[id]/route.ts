@@ -48,7 +48,7 @@ export async function GET(
       isRoadSlippery: device.isRoadSlippery,
       isLandslide: device.isLandslide,
       images: device.images.map((img: Image) => ({
-        url: `/uploads/${img.url}`,
+        url: `/api/upload/${img.url}`,
         licensePlate: img.licensePlate,
         createdAt: img.createdAt,
       })),
