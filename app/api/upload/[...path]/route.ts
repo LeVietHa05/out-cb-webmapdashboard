@@ -5,9 +5,7 @@ import path from 'path';
 import { stat } from 'fs/promises';
 
 interface RouteParams {
-    params: {
-        path: string[];
-    };
+  params: Promise<{ path: string[] }>;
 }
 
 export async function GET(
