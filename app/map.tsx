@@ -7,6 +7,10 @@ import "leaflet/dist/leaflet.css";
 import "./marker-styles.css";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import StatusAlert from "./compoments/StatusAlert";
+import LastestEnvirCard from "./compoments/LastestEnvirCard";
+import ImageList from "./compoments/ImageList";
+import EnvirHistory from "./compoments/EnvirHistory";
 
 export interface EnvironmentData {
     temperature: number;
@@ -41,7 +45,7 @@ function MapController({ center, zoom }: { center: any, zoom: number }) {
     const map = useMap();
 
     useEffect(() => {
-        map.flyTo(center, zoom, {duration: 1});
+        map.flyTo(center, zoom, { duration: 1 });
     }, [center, zoom, map]);
 
     return null;
@@ -92,14 +96,14 @@ export default function Map() {
     const createCustomMarker = (device: Device) => {
         const isActive = isDeviceActive(device);
         const hasCars = hasDetectedCars(device);
-        
+
         // Base marker color - black background with colored border
         const borderColor = isActive ? '#ef4444' : '#22c55e'; // red or green border
         const markerSize = isActive ? 50 : 40; // Increased size
-        
+
         // Create badges HTML
         const badges = [];
-        
+
         if (device.isLandslide) {
             badges.push('<div class="status-badge bg-red-600" title="Cảnh báo sạt lở">⚠️</div>');
         }
@@ -113,8 +117,8 @@ export default function Map() {
             badges.push('<div class="status-badge bg-blue-600" title="Phát hiện xe">🚗</div>');
         }
 
-        const badgesHtml = badges.length > 0 
-            ? `<div class="status-badges">${badges.join('')}</div>` 
+        const badgesHtml = badges.length > 0
+            ? `<div class="status-badges">${badges.join('')}</div>`
             : '';
 
         const html = `
@@ -140,6 +144,54 @@ export default function Map() {
             .then((res) => res.json())
             .then((data) => setDevices(data));
     }, []);
+
+    const saveEdit = async function (selectedDevice: Device) {
+
+        if (!editForm.title.trim()) {
+            setError('Tiêu đề không được để trống');
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await fetch(`/api/devices/${selectedDevice.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: editForm.title.trim(),
+                    description: editForm.description.trim() || undefined,
+                    lat: parseFloat(editForm.lat),
+                    lng: parseFloat(editForm.lng),
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Cập nhật thiết bị thất bại');
+            }
+
+            const updatedDevice = await response.json();
+
+            // Update the device in the local state
+            setDevices(prev => prev.map(d =>
+                d.id === selectedDevice.id ? { ...d, ...updatedDevice } : d
+            ));
+
+            // Update selected device
+            setSelectedDevice(prev => prev ? { ...prev, ...updatedDevice } : null);
+
+            setIsEditing(false);
+            setError(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Có lỗi xảy ra');
+        } finally {
+            setLoading(false);
+        }
+
+    }
 
     return (
         <div style={{ height: "100vh", width: "100%" }}>
@@ -264,51 +316,7 @@ export default function Map() {
 
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={async () => {
-                                            if (!editForm.title.trim()) {
-                                                setError('Tiêu đề không được để trống');
-                                                return;
-                                            }
-
-                                            setLoading(true);
-                                            setError(null);
-
-                                            try {
-                                                const response = await fetch(`/api/devices/${selectedDevice.id}`, {
-                                                    method: 'PUT',
-                                                    headers: {
-                                                        'Content-Type': 'application/json',
-                                                    },
-                                                    body: JSON.stringify({
-                                                        title: editForm.title.trim(),
-                                                        description: editForm.description.trim() || undefined,
-                                                        lat: parseFloat(editForm.lat),
-                                                        lng: parseFloat(editForm.lng),
-                                                    }),
-                                                });
-
-                                                if (!response.ok) {
-                                                    throw new Error('Cập nhật thiết bị thất bại');
-                                                }
-
-                                                const updatedDevice = await response.json();
-
-                                                // Update the device in the local state
-                                                setDevices(prev => prev.map(d =>
-                                                    d.id === selectedDevice.id ? { ...d, ...updatedDevice } : d
-                                                ));
-
-                                                // Update selected device
-                                                setSelectedDevice(prev => prev ? { ...prev, ...updatedDevice } : null);
-
-                                                setIsEditing(false);
-                                                setError(null);
-                                            } catch (err) {
-                                                setError(err instanceof Error ? err.message : 'Có lỗi xảy ra');
-                                            } finally {
-                                                setLoading(false);
-                                            }
-                                        }}
+                                        onClick={() => saveEdit(selectedDevice)}
                                         disabled={loading}
                                         className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
@@ -332,143 +340,21 @@ export default function Map() {
                         )}
 
                         {/* Status Alerts */}
-                        <div className="mb-4 space-y-2">
-                            {selectedDevice.isLandslide && (
-                                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded">
-                                    <div className="flex items-center">
-                                        <span className="text-xl mr-2">⚠️</span>
-                                        <div>
-                                            <p className="font-bold">CẢNH BÁO SẠT LỞ ĐẤT</p>
-                                            <p className="text-sm">Phát hiện nguy cơ sạt lở</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            {selectedDevice.isRoadSlippery && (
-                                <div className="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-3 rounded">
-                                    <div className="flex items-center">
-                                        <span className="text-xl mr-2">🌧️</span>
-                                        <div>
-                                            <p className="font-bold">Đường Trơn Trượt</p>
-                                            <p className="text-sm">Mưa liên tục &gt; 10 phút</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            {selectedDevice.isFogging && (
-                                <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 rounded">
-                                    <div className="flex items-center">
-                                        <span className="text-xl mr-2">🌫️</span>
-                                        <div>
-                                            <p className="font-bold">Sương Mù</p>
-                                            <p className="text-sm">Độ ẩm cao, nhiệt độ thấp</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        <StatusAlert selectedDevice={selectedDevice} />
 
                         {/* Latest Environment Data */}
-                        {selectedDevice.latestEnvironment && (
-                            <div className="mb-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
-                                <h3 className="font-bold text-blue-900 mb-3 flex items-center">
-                                    <span className="mr-2">🌡️</span>
-                                    Dữ Liệu Môi Trường
-                                </h3>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-white p-3 rounded shadow-sm">
-                                        <p className="text-xs text-gray-500 mb-1">Nhiệt độ</p>
-                                        <p className="text-2xl font-bold text-blue-600">
-                                            {selectedDevice.latestEnvironment.temperature.toFixed(1)}°C
-                                        </p>
-                                    </div>
-                                    <div className="bg-white p-3 rounded shadow-sm">
-                                        <p className="text-xs text-gray-500 mb-1">Độ ẩm</p>
-                                        <p className="text-2xl font-bold text-blue-600">
-                                            {selectedDevice.latestEnvironment.humidity.toFixed(1)}%
-                                        </p>
-                                    </div>
-                                    <div className="bg-white p-3 rounded shadow-sm col-span-2">
-                                        <p className="text-xs text-gray-500 mb-1">Trạng thái mưa</p>
-                                        <p className="text-lg font-bold">
-                                            {selectedDevice.latestEnvironment.isRaining ? (
-                                                <span className="text-blue-600">🌧️ Đang mưa</span>
-                                            ) : (
-                                                <span className="text-gray-600">☀️ Không mưa</span>
-                                            )}
-                                        </p>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-2">
-                                    Cập nhật: {new Date(selectedDevice.latestEnvironment.createdAt).toLocaleString('vi-VN')}
-                                </p>
-                            </div>
-                        )}
+                        <LastestEnvirCard selectedDevice={selectedDevice} />
 
                         {/* Images with License Plates */}
-                        {selectedDevice.images && selectedDevice.images.length > 0 && (
-                            <div className="mb-4">
-                                <h3 className="font-bold text-gray-800 mb-3 flex items-center">
-                                    <span className="mr-2">📷</span>
-                                    Hình Ảnh ({selectedDevice.images.length})
-                                </h3>
-                                <div className="space-y-3">
-                                    {selectedDevice.images.map((img: DeviceImage, i: number) => (
-                                        <div key={i} className="border rounded-lg overflow-hidden shadow-sm">
-                                            <Image 
-                                                src={img.url} 
-                                                alt="device image" 
-                                                width={400} 
-                                                height={300} 
-                                                className="w-full"
-                                            />
-                                            <div className="p-3 bg-gray-50">
-                                                {img.licensePlate && (
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-sm text-gray-600">Biển số xe:</span>
-                                                        <span className="font-mono font-bold text-blue-600 bg-white px-3 py-1 rounded border-2 border-blue-600">
-                                                            {img.licensePlate}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                <p className="text-xs text-gray-500 mt-2">
-                                                    {new Date(img.createdAt).toLocaleString('vi-VN')}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        <ImageList selectedDevice={selectedDevice} />
 
                         {/* Environment History */}
-                        {selectedDevice.environmentData && selectedDevice.environmentData.length > 0 && (
-                            <div className="mb-4">
-                                <h3 className="font-bold text-gray-800 mb-3 flex items-center">
-                                    <span className="mr-2">📊</span>
-                                    Lịch Sử Môi Trường
-                                </h3>
-                                <div className="space-y-2 max-h-60 overflow-y-auto">
-                                    {selectedDevice.environmentData.slice(0, 5).map((env: EnvironmentData, i: number) => (
-                                        <div key={i} className="bg-gray-50 p-3 rounded border text-sm">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span className="font-semibold text-gray-700">
-                                                    {new Date(env.createdAt).toLocaleString('vi-VN')}
-                                                </span>
-                                                {env.isRaining && <span className="text-blue-600">🌧️</span>}
-                                            </div>
-                                            <div className="flex gap-4 text-gray-600">
-                                                <span>🌡️ {env.temperature.toFixed(1)}°C</span>
-                                                <span>💧 {env.humidity.toFixed(1)}%</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        <EnvirHistory selectedDevice={selectedDevice} />
                     </div>
                 </div>
             )}
+
+
         </div>
     );
 }

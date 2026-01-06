@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/api/uploads/[...path]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
@@ -5,7 +6,7 @@ import path from 'path';
 import { stat } from 'fs/promises';
 
 interface RouteParams {
-  params: Promise<{ path: string[] }>;
+    params: Promise<{ path: string[] }>;
 }
 
 export async function GET(
