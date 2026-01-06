@@ -30,7 +30,7 @@ export async function GET() {
       isRoadSlippery: d.isRoadSlippery,
       isLandslide: d.isLandslide,
       images: d.images.map((img: Image) => ({
-        url: `/uploads/${img.url}`,
+        url: `/api/upload/${img.url}`,
         licensePlate: img.licensePlate,
         createdAt: img.createdAt,
       })),
