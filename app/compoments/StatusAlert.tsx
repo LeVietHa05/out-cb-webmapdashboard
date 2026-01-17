@@ -4,7 +4,7 @@ import { Device } from "../map"
 export default function StatusAlert({ selectedDevice }: { selectedDevice: Device }) {
     return (
         <div className="mb-4 space-y-2">
-            {selectedDevice.isLandslide && (
+            {selectedDevice.isLandslide ? (
                 <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded">
                     <div className="flex items-center">
                         <span className="text-xl mr-2">⚠️</span>
@@ -14,7 +14,17 @@ export default function StatusAlert({ selectedDevice }: { selectedDevice: Device
                         </div>
                     </div>
                 </div>
-            )}
+            )
+                : (
+                    <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-3 rounded">
+                        <div className="flex items-center">
+                            <span className="text-xl mr-2"></span>
+                            <div>
+                                <p className="font-bold">Không có nguy cơ sạt lở.</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
             {selectedDevice.isRoadSlippery && (
                 <div className="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-3 rounded">
                     <div className="flex items-center">
