@@ -222,6 +222,7 @@ export default function Map() {
                             <div className="flex items-center gap-2">
                                 {!isEditing && (
                                     <button
+                                        disabled
                                         onClick={() => {
                                             setIsEditing(true);
                                             setEditForm({
@@ -232,7 +233,7 @@ export default function Map() {
                                             });
                                             setError(null);
                                         }}
-                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 border border-blue-600 rounded"
+                                        className="hidden cursor-not-allowed text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 border border-blue-600 rounded"
                                     >
                                         ✏️ Chỉnh sửa
                                     </button>
